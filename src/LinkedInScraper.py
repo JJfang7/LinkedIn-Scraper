@@ -66,11 +66,12 @@ class LinkedInScraper:
 
     def get_contact(self, contactURL):
         self.browser.get(LINKEDIN_URL + contactURL)
+        self.browser.refresh()
         src = self.browser.page_source
+        print(src)
         self.soup = BeautifulSoup(src, 'html.parser')
-
+        print(self.soup.text)
         info = self.soup.find('div', {'class': 'pv-profile-section__section-info section-info'})
-        print(info)
         phone_num = info.find('span', {'class': 't-14 t-black t-normal'}).get_text()
         email_add = info.find('div')["href"]
         print(phone_num, email_add)
@@ -91,9 +92,8 @@ class LinkedInScraper:
         headline = intro1.find('div', {'class': 'text-body-medium break-words'}).get_text().strip()
 
         intro2 = self.soup.find('div', {'class': 'pv-text-details__left-panel mt2'})
-        print(intro2)
         location = intro2.find('span').get_text().strip()
         contactURL = intro2.find('a')["href"]
-        print(contactURL)
+
         contact_info = self.get_contact(contactURL)
         return name, pronoun, headline, location
