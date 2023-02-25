@@ -64,17 +64,29 @@ class LinkedInScraper:
         src = self.browser.page_source
         self.soup = BeautifulSoup(src, 'html.parser')
 
-    def get_contact(self, contactURL):
-        self.browser.get(LINKEDIN_URL + contactURL)
-        self.browser.refresh()
-        src = self.browser.page_source
-        print(src)
-        self.soup = BeautifulSoup(src, 'html.parser')
-        print(self.soup.text)
-        info = self.soup.find('div', {'class': 'pv-profile-section__section-info section-info'})
-        phone_num = info.find('span', {'class': 't-14 t-black t-normal'}).get_text()
-        email_add = info.find('div')["href"]
-        print(phone_num, email_add)
+    def get_contact(self):
+        self.browser.execute_script(
+            "(function(){try{for(i in document.getElementsByTagName('a')){let el = document.getElementsByTagName("
+            "'a')[i]; "
+            "if(el.innerHTML.includes('Contact info')){el.click();}}}catch(e){}})()")
+
+        # Wait 5 seconds for the page to load
+        time.sleep(2)
+
+        # Scrape the email address from the 'Contact info' popup
+        email = self.browser.execute_script(
+            "return (function(){try{for (i in document.getElementsByClassName('pv-contact-info__contact-type')){ let "
+            "el = "
+            "document.getElementsByClassName('pv-contact-info__contact-type')[i]; if(el.className.includes("
+            "'ci-email')){ "
+            "return el.children[2].children[0].innerText; } }} catch(e){return '';}})()")
+        phone = self.browser.execute_script(
+            "return (function(){try{for (i in document.getElementsByClassName('pv-contact-info__contact-type')){ let "
+            "el = "
+            "document.getElementsByClassName('pv-contact-info__contact-type')[i]; if(el.className.includes("
+            "'ci-phone')){ "
+            "return el.children[2].children[0].innerText; } }} catch(e){return '';}})()")
+        return email, phone
 
     def get_intro(self, URL):
         '''
@@ -93,7 +105,5 @@ class LinkedInScraper:
 
         intro2 = self.soup.find('div', {'class': 'pv-text-details__left-panel mt2'})
         location = intro2.find('span').get_text().strip()
-        contactURL = intro2.find('a')["href"]
 
-        contact_info = self.get_contact(contactURL)
         return name, pronoun, headline, location
