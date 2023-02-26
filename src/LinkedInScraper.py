@@ -9,12 +9,18 @@ LINKEDIN_URL = "https://www.linkedin.com/"
 
 
 class LinkedInScraper:
-    def __init__(self, username, password, URLs):
+    def __init__(self, username, password, URLs, user_agent):
         # constructing Chrome browser, if the devise doesn't have chrome, it needs to be installed
-        self.browser = webdriver.Chrome()
-        self.URLs = URLs
+        self.__options = webdriver.ChromeOptions()
+        self.__setup_agent(user_agent)
         self.__login(username, password)
+
+        self.URLs = URLs
         self.soup = None
+
+    def __setup_agent(self, user_agent):
+        self.__options.add_argument(f"user-agent={user_agent}")
+        self.browser = webdriver.Chrome(options=self.__options)
 
     def __login(self, username, password):
         self.browser.get(LINKEDIN_URL)
@@ -137,22 +143,23 @@ class LinkedInScraper:
                                                              'pvs-list__item--line-separated'})
 
         for experience_html in experiences_html:
+            details_html = experience_html.find('div', {'class': 'display-flex flex-column full-width align-self-center'})
             # if the user have had multiple experiences at one company, the format is different
-            have_multi_exp = experience_html.findAll('a', {'class': 'optional-action-target-wrapper display-flex '
+            have_multi_exp = details_html.findAll('a', {'class': 'optional-action-target-wrapper display-flex '
                                                                'flex-column full-width'})
 
             # if no multiple experiences
             if not have_multi_exp:
 
-                title = experience_html.find('span', {'class': 'mr1 t-bold'}). \
+                title = details_html.find('span', {'class': 'mr1 t-bold'}). \
                     find('span', {'aria-hidden': 'true'}).get_text()
-                company = experience_html.find('span', {'class': 't-14 t-normal'}). \
+                company = details_html.find('span', {'class': 't-14 t-normal'}). \
                     find('span', {'aria-hidden': 'true'}).get_text()
 
-                work_time = experience_html.find('span', {'class': 't-14 t-normal t-black--light'}).\
+                work_time = details_html.find('span', {'class': 't-14 t-normal t-black--light'}).\
                     find('span', {'aria-hidden': 'true'}).get_text().strip()
 
-                content_html = experience_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
+                content_html = details_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
                                                                      't-black'})
                 content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
                     if content_html else None
@@ -166,8 +173,8 @@ class LinkedInScraper:
                 experiences.append(experience)
 
             else:
-                company = experience_html.find('span', {'aria-hidden': 'true'}).get_text()
-                roles = experience_html.findAll('li', {'class': 'pvs-list__paged-list-item  '})
+                company = details_html.find('span', {'aria-hidden': 'true'}).get_text()
+                roles = details_html.findAll('li', {'class': 'pvs-list__paged-list-item'})
 
                 for role in roles:
                     title = role.find('span', {'class': 'mr1 hoverable-link-text t-bold'}). \
@@ -175,7 +182,7 @@ class LinkedInScraper:
                     work_time = role.find('span', {'class': 't-14 t-normal t-black--light'}).\
                         find('span', {'aria-hidden': 'true'}).get_text()
 
-                    content_html = role.find('div', {'class': 'display-flex'})
+                    content_html = role.find('ul', {'class': 'pvs-list'})
                     content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
                         if content_html else None
                     experience = {
@@ -184,6 +191,7 @@ class LinkedInScraper:
                         'Employ time': work_time,
                         'Work content': content
                     }
+
                     experiences.append(experience)
 
         return experiences
