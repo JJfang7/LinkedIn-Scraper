@@ -12,15 +12,17 @@ class LinkedInScraper:
     def __init__(self, username, password, URLs):
         # constructing Chrome browser, if the devise doesn't have chrome, it needs to be installed
         self.__options = webdriver.ChromeOptions()
-        self.__setup_agent()
+        self.__setup_browser()
         self.__login(username, password)
 
         self.URLs = URLs
         self.soup = None
 
-    def __setup_agent(self):
+    def __setup_browser(self):
         # using headless to make the windows invisible
         self.__options.headless = True
+        # prevent LinkedIn from detecting the automation extension
+        self.__options.add_experimental_option("excludeSwitches", ["enable-automation"])
         self.browser = webdriver.Chrome(options=self.__options)
 
     def __login(self, username, password):
@@ -134,6 +136,9 @@ class LinkedInScraper:
         return name, pronoun, headline, location
 
     def get_experiences(self, URL):
+        # easier method: print(self.soup.find('ul', {'class': 'pvs-list'}).strip())
+        # need to handle duplicates and empty spaces, and the data isn't ordered
+
         experiences = []
         self.__go_to_page(URL + "details/experience/")
 
@@ -163,7 +168,7 @@ class LinkedInScraper:
                 content_html = details_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
                                                                      't-black'})
                 content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
-                    if content_html else None
+                    if content_html else "No content"
 
                 experience = {
                     'Title': title,
@@ -185,7 +190,7 @@ class LinkedInScraper:
 
                     content_html = role.find('ul', {'class': 'pvs-list'})
                     content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
-                        if content_html else None
+                        if content_html else "No content"
                     experience = {
                         'Title': title,
                         'Company': company,
@@ -196,3 +201,14 @@ class LinkedInScraper:
                     experiences.append(experience)
 
         return experiences
+
+    def get_edc(self, URL):
+        self.__go_to_page(URL)
+        edc_id = self.browser.find_element(By.XPATH, '//*[@id="education"]')
+        edc_html = edc_id.parent
+        # handling duplicates
+        details = edc_html.text.split("\n")[2::2]
+        return details
+
+
+
