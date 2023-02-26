@@ -9,17 +9,18 @@ LINKEDIN_URL = "https://www.linkedin.com/"
 
 
 class LinkedInScraper:
-    def __init__(self, username, password, URLs, user_agent):
+    def __init__(self, username, password, URLs):
         # constructing Chrome browser, if the devise doesn't have chrome, it needs to be installed
         self.__options = webdriver.ChromeOptions()
-        self.__setup_agent(user_agent)
+        self.__setup_agent()
         self.__login(username, password)
 
         self.URLs = URLs
         self.soup = None
 
-    def __setup_agent(self, user_agent):
-        self.__options.add_argument(f"user-agent={user_agent}")
+    def __setup_agent(self):
+        # using headless to make the windows invisible
+        self.__options.headless = True
         self.browser = webdriver.Chrome(options=self.__options)
 
     def __login(self, username, password):
