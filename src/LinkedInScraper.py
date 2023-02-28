@@ -2,6 +2,7 @@ import requests
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.proxy import Proxy, ProxyType
 from time import sleep
 from bs4 import BeautifulSoup
 
@@ -20,25 +21,32 @@ class LinkedInScraper:
 
     def __setup_browser(self):
         # using headless to make the windows invisible
-        self.__options.headless = True
+        # self.__options.headless = True
         # prevent LinkedIn from detecting the automation extension
         self.__options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
+        # setting proxies
+
         self.browser = webdriver.Chrome(options=self.__options)
 
     def __login(self, username, password):
-        self.browser.get(LINKEDIN_URL)
-        # login using LinkedIn username and password
-        user_name = self.browser.find_element(By.ID, 'session_key')
-        user_name.send_keys(username)
-        sleep(0.5)
+        try:
+            self.browser.get(LINKEDIN_URL)
+            # login using LinkedIn username and password
+            user_name = self.browser.find_element(By.ID, 'session_key')
+            user_name.send_keys(username)
+            sleep(0.5)
 
-        session_pw = self.browser.find_element(By.ID, 'session_password')
-        session_pw.send_keys(password)
-        sleep(0.5)
+            session_pw = self.browser.find_element(By.ID, 'session_password')
+            session_pw.send_keys(password)
+            sleep(0.5)
 
-        sign_in = self.browser.find_element(By.XPATH, '//*[@type="submit"]')
-        sign_in.click()
-        sleep(2)
+            sign_in = self.browser.find_element(By.XPATH, '//*[@type="submit"]')
+            sign_in.click()
+            sleep(1)
+
+        except Exception:
+            return None
 
     def __go_to_page(self, URL):
         self.browser.get(URL)
@@ -149,10 +157,11 @@ class LinkedInScraper:
                                                              'pvs-list__item--line-separated'})
 
         for experience_html in experiences_html:
-            details_html = experience_html.find('div', {'class': 'display-flex flex-column full-width align-self-center'})
+            details_html = experience_html.find('div',
+                                                {'class': 'display-flex flex-column full-width align-self-center'})
             # if the user have had multiple experiences at one company, the format is different
             have_multi_exp = details_html.findAll('a', {'class': 'optional-action-target-wrapper display-flex '
-                                                               'flex-column full-width'})
+                                                                 'flex-column full-width'})
 
             # if no multiple experiences
             if not have_multi_exp:
@@ -162,11 +171,11 @@ class LinkedInScraper:
                 company = details_html.find('span', {'class': 't-14 t-normal'}). \
                     find('span', {'aria-hidden': 'true'}).get_text()
 
-                work_time = details_html.find('span', {'class': 't-14 t-normal t-black--light'}).\
+                work_time = details_html.find('span', {'class': 't-14 t-normal t-black--light'}). \
                     find('span', {'aria-hidden': 'true'}).get_text().strip()
 
                 content_html = details_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
-                                                                     't-black'})
+                                                                  't-black'})
                 content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
                     if content_html else "No content"
 
@@ -185,7 +194,7 @@ class LinkedInScraper:
                 for role in roles:
                     title = role.find('span', {'class': 'mr1 hoverable-link-text t-bold'}). \
                         find('span', {'aria-hidden': 'true'}).get_text()
-                    work_time = role.find('span', {'class': 't-14 t-normal t-black--light'}).\
+                    work_time = role.find('span', {'class': 't-14 t-normal t-black--light'}). \
                         find('span', {'aria-hidden': 'true'}).get_text()
 
                     content_html = role.find('ul', {'class': 'pvs-list'})
@@ -210,5 +219,17 @@ class LinkedInScraper:
         details = edc_html.text.split("\n")[2::2]
         return details
 
+    def get_skills(self, URL):
+        self.__go_to_page(URL + "details/skills/")
 
+        skills = []
 
+        skills_html = self.soup.findAll('div', {'class': 'display-flex align-items-center'})
+
+        for skill_html in skills_html:
+
+            skill = skill_html.find('span', {'aria-hidden': 'true'})
+            if skill:
+                skills.append(skill.get_text())
+
+        return skills
