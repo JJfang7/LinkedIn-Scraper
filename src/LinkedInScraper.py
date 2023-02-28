@@ -21,7 +21,7 @@ class LinkedInScraper:
 
     def __setup_browser(self):
         # using headless to make the windows invisible
-        # self.__options.headless = True
+        self.__options.headless = True
         # prevent LinkedIn from detecting the automation extension
         self.__options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
@@ -159,65 +159,70 @@ class LinkedInScraper:
         for experience_html in experiences_html:
             details_html = experience_html.find('div',
                                                 {'class': 'display-flex flex-column full-width align-self-center'})
-            # if the user have had multiple experiences at one company, the format is different
-            have_multi_exp = details_html.findAll('a', {'class': 'optional-action-target-wrapper display-flex '
-                                                                 'flex-column full-width'})
+            if details_html:
+                # if the user have had multiple experiences at one company, the format is different
+                have_multi_exp = details_html.findAll('a', {'class': 'optional-action-target-wrapper display-flex '
+                                                                     'flex-column full-width'})
 
-            # if no multiple experiences
-            if not have_multi_exp:
+                # if no multiple experiences
+                if not have_multi_exp:
 
-                title = details_html.find('span', {'class': 'mr1 t-bold'}). \
-                    find('span', {'aria-hidden': 'true'}).get_text()
-                company = details_html.find('span', {'class': 't-14 t-normal'}). \
-                    find('span', {'aria-hidden': 'true'}).get_text()
-
-                work_time = details_html.find('span', {'class': 't-14 t-normal t-black--light'}). \
-                    find('span', {'aria-hidden': 'true'}).get_text().strip()
-
-                content_html = details_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
-                                                                  't-black'})
-                content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
-                    if content_html else "No content"
-
-                experience = {
-                    'Title': title,
-                    'Company': company,
-                    'Employ time': work_time,
-                    'Work content': content
-                }
-                experiences.append(experience)
-
-            else:
-                company = details_html.find('span', {'aria-hidden': 'true'}).get_text()
-                roles = details_html.findAll('li', {'class': 'pvs-list__paged-list-item'})
-
-                for role in roles:
-                    title = role.find('span', {'class': 'mr1 hoverable-link-text t-bold'}). \
+                    title = details_html.find('span', {'class': 'mr1 t-bold'}). \
                         find('span', {'aria-hidden': 'true'}).get_text()
-                    work_time = role.find('span', {'class': 't-14 t-normal t-black--light'}). \
+                    company = details_html.find('span', {'class': 't-14 t-normal'}). \
                         find('span', {'aria-hidden': 'true'}).get_text()
 
-                    content_html = role.find('ul', {'class': 'pvs-list'})
+                    work_time = details_html.find('span', {'class': 't-14 t-normal t-black--light'}). \
+                        find('span', {'aria-hidden': 'true'}).get_text().strip()
+
+                    content_html = details_html.find('div', {'class': 'display-flex align-items-center t-14 t-normal '
+                                                                      't-black'})
                     content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
                         if content_html else "No content"
+
                     experience = {
                         'Title': title,
                         'Company': company,
                         'Employ time': work_time,
                         'Work content': content
                     }
-
                     experiences.append(experience)
+
+                else:
+                    company = details_html.find('span', {'aria-hidden': 'true'}).get_text()
+                    roles = details_html.findAll('li', {'class': 'pvs-list__paged-list-item'})
+
+                    for role in roles:
+                        title = role.find('span', {'class': 'mr1 hoverable-link-text t-bold'}). \
+                            find('span', {'aria-hidden': 'true'}).get_text()
+                        work_time = role.find('span', {'class': 't-14 t-normal t-black--light'}). \
+                            find('span', {'aria-hidden': 'true'}).get_text()
+
+                        content_html = role.find('ul', {'class': 'pvs-list'})
+                        content = content_html.find('span', {'aria-hidden': 'true'}).get_text() \
+                            if content_html else "No content"
+                        experience = {
+                            'Title': title,
+                            'Company': company,
+                            'Employ time': work_time,
+                            'Work content': content
+                        }
+
+                        experiences.append(experience)
 
         return experiences
 
     def get_edc(self, URL):
         self.__go_to_page(URL)
-        edc_id = self.browser.find_element(By.XPATH, '//*[@id="education"]')
-        edc_html = edc_id.parent
-        # handling duplicates
-        details = edc_html.text.split("\n")[2::2]
-        return details
+        try:
+            edc_id = self.browser.find_element(By.XPATH, '//*[@id="education"]')
+            edc_html = edc_id.parent
+            # handling duplicates
+            details = edc_html.text.split("\n")[2::2]
+            return details
+
+        except Exception:
+            return None
 
     def get_skills(self, URL):
         self.__go_to_page(URL + "details/skills/")
